@@ -1,11 +1,11 @@
-﻿using Aplicacao.DTOs;
+﻿using Dominio.DTOs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Aplicacao.Services.Interfaces
+namespace Aplicacao.Interfaces
 {
     public interface ITransacaoService
     {

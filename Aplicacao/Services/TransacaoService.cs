@@ -1,7 +1,8 @@
-﻿using Aplicacao.DTOs;
-using Aplicacao.Services.Interfaces;
+﻿using Aplicacao.Interfaces;
+using Dominio.DTOs;
 using Dominio.Entities;
 using Infraestrutura;
+using Infraestrutura.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -13,28 +14,20 @@ namespace Aplicacao.Services
 {
     public class TransacaoService : ITransacaoService
     {
-        private readonly AppDbContext _context;
+        private readonly ITransacaoRepository _transacaoRepository;
+        private readonly ICategoriaRepository _categoriaRepository;
 
-        public TransacaoService(AppDbContext context)
+        public TransacaoService(ITransacaoRepository transacaoRepository, ICategoriaRepository categoriaRepository)
         {
-            _context = context;
+            _transacaoRepository = transacaoRepository;
+            _categoriaRepository = categoriaRepository;
         }
 
         public async Task<IEnumerable<TransacaoResponse>> ListarAsync(DateTime? inicio, DateTime? fim,long? categoriaId, int? tipo)
         {
-            var query = _context.Transacoes
-                .Include(x => x.Categoria)
-                .AsQueryable();
-
-            if(inicio.HasValue) query = query.Where(t => t.Data >= inicio.Value);
-
-            if(fim.HasValue) query = query.Where(t => t.Data <= fim.Value);
-
-            if(categoriaId.HasValue) query = query.Where(t => t.CategoriaId == categoriaId.Value);
-
-            if(tipo.HasValue) query = query.Where(t => (int)t.Categoria!.Tipo == tipo.Value);
-
-            return await query
+            var transacoes = await _transacaoRepository.ListarAsync(inicio, fim, categoriaId, tipo);
+            
+            return transacoes
                 .Select(t => new TransacaoResponse
                 {
                     Id = t.Id,
@@ -45,14 +38,12 @@ namespace Aplicacao.Services
                     CategoriaNome = t.Categoria.Nome,
                     Observacoes = t.Observacoes,
                     DataCriacao = t.DataCriacao,
-                }).ToListAsync();
+                }).ToList();
         }
 
         public async Task<TransacaoResponse> ObterPorIdAsync(long id)
         {
-            var transacao = await _context.Transacoes
-                .Include(x => x.Categoria)
-                .FirsOrDefaultAsync(x => x.Id == id);
+            var transacao = await _transacaoRepository.ObterPorIdAsync(id);
 
             if(transacao == null)
             {
@@ -66,7 +57,7 @@ namespace Aplicacao.Services
                 Valor = transacao.Valor,
                 Data = transacao.Data,
                 CategoriaId = transacao.CategoriaId,
-                CategoriaNome = transacao.CategoriaNome,
+                CategoriaNome = transacao.Categoria.Nome,
                 Observacoes = transacao.Observacoes,
                 DataCriacao = transacao.DataCriacao,
             };
@@ -74,6 +65,7 @@ namespace Aplicacao.Services
 
         public async Task<long> CriarAsync(CriarTransacaoRequest request)
         {
+            
             if(request.Valor <= 0)
             {
                 throw new ArgumentException("Valor deve ser maior que zero.");
@@ -84,8 +76,7 @@ namespace Aplicacao.Services
                 throw new ArgumentException("Data não pode ser futura.");
             }
 
-            var categoria = await _context.Categorias
-                .FirstOrDefaultAsync(x => x.Id == request.CategoriaId && x.Ativo);  
+            var categoria = await _categoriaRepository.ObterAtivaPorIdAsync(request.CategoriaId);  
 
             if(categoria == null)
             {
@@ -102,15 +93,14 @@ namespace Aplicacao.Services
                 DataCriacao = DateTime.Now
             };
 
-            _context.Transacoes.Add(transacao);
-            await _context.SaveChangesAsync();
+            await _transacaoRepository.CriarAsync(transacao);
 
             return transacao.Id;
         } 
 
         public async Task AtualizarAsync(long id, AtualizarTransacaoRequest request)
         {
-            var transacao = await _context.Transacoes.FindAsync(id);
+            var transacao = await _transacaoRepository.ObterPorIdAsync(id);
             if(transacao == null)
             {
                 throw new Exception("Transação não encontrada.");
@@ -126,8 +116,7 @@ namespace Aplicacao.Services
                 throw new ArgumentException("Data não pode ser futura.");
             }
 
-            var categoria = await _context.Categorias
-                .FirstOrDefaultAsync(c => c.Id == request.CategoriaId && c.Ativo);
+            var categoria = await _categoriaRepository.ObterAtivaPorIdAsync(request.CategoriaId);
 
             if(categoria == null)
             {
@@ -140,21 +129,18 @@ namespace Aplicacao.Services
             transacao.CategoriaId = request.CategoriaId;
             transacao.Observacoes = request.Observacoes;
 
-            _context.Transacoes.Update(transacao);
-
-            await _context.SaveChangesAsync();
+            await _transacaoRepository.AtualizarAsync(transacao);
         }
 
         public async Task DeletarAsync(long id)
         {
-            var transacao = await _context.Transacoes.FindAsync(id);
+            var transacao = await _transacaoRepository.ObterPorIdAsync(id);
             if(transacao == null)
             {
                 throw new Exception("Transação não encontrada.");
             }
 
-            _context.Transacoes.Remove(transacao);
-            await _context.SaveChangesAsync();
+            await _transacaoRepository.DeletarAsync(transacao);
         }
 
     }
