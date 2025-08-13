@@ -1,14 +1,7 @@
 ﻿using Aplicacao.Interfaces;
 using Dominio.DTOs;
 using Dominio.Entities;
-using Infraestrutura;
 using Infraestrutura.Interfaces;
-using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Aplicacao.Services
 {
@@ -16,6 +9,11 @@ namespace Aplicacao.Services
     {
         private readonly ITransacaoRepository _transacaoRepository;
         private readonly ICategoriaRepository _categoriaRepository;
+
+        const string TransacaoNaoEncontrada = "Transação não encontrada";
+        const string ValorDeveSerMaiorZero = "Valor deve ser maior que zero.";
+        const string DataNFutura = "Data não pode ser futura.";
+        const string CategoriaInvalida = "Categoria inválida ou inativa.";
 
         public TransacaoService(ITransacaoRepository transacaoRepository, ICategoriaRepository categoriaRepository)
         {
@@ -47,7 +45,7 @@ namespace Aplicacao.Services
 
             if(transacao == null)
             {
-                throw new Exception("Transação não encontrada.");
+                throw new Exception(TransacaoNaoEncontrada);
             }
 
             return new TransacaoResponse
@@ -68,19 +66,19 @@ namespace Aplicacao.Services
             
             if(request.Valor <= 0)
             {
-                throw new ArgumentException("Valor deve ser maior que zero.");
+                throw new ArgumentException(ValorDeveSerMaiorZero);
             }
 
             if(request.Data > DateTime.Now)
             {
-                throw new ArgumentException("Data não pode ser futura.");
+                throw new ArgumentException(DataNFutura);
             }
 
             var categoria = await _categoriaRepository.ObterAtivaPorIdAsync(request.CategoriaId);  
 
             if(categoria == null)
             {
-                throw new ArgumentException("Categoria inválida ou inativa.");
+                throw new ArgumentException(CategoriaInvalida);
             }
 
             var transacao = new Transacao
@@ -103,24 +101,24 @@ namespace Aplicacao.Services
             var transacao = await _transacaoRepository.ObterPorIdAsync(id);
             if(transacao == null)
             {
-                throw new Exception("Transação não encontrada.");
+                throw new Exception(TransacaoNaoEncontrada);
             }
 
             if(request.Valor <= 0)
             {
-                throw new ArgumentException("Valor deve ser maior que zero.");
+                throw new ArgumentException(ValorDeveSerMaiorZero);
             }
 
             if(request.Data > DateTime.Now)
             {
-                throw new ArgumentException("Data não pode ser futura.");
+                throw new ArgumentException(DataNFutura);
             }
 
             var categoria = await _categoriaRepository.ObterAtivaPorIdAsync(request.CategoriaId);
 
             if(categoria == null)
             {
-                throw new ArgumentException("Categoria inválida ou inativa");
+                throw new ArgumentException(CategoriaInvalida);
             }
 
             transacao.Descricao = request.Descricao;
@@ -137,7 +135,7 @@ namespace Aplicacao.Services
             var transacao = await _transacaoRepository.ObterPorIdAsync(id);
             if(transacao == null)
             {
-                throw new Exception("Transação não encontrada.");
+                throw new Exception(TransacaoNaoEncontrada);
             }
 
             await _transacaoRepository.DeletarAsync(transacao);
