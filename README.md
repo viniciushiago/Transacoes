@@ -14,8 +14,6 @@ Utiliza **Repository Pattern**, **DTOs**, **Entity Framework Core** e **SQL Serv
 - **SQL Server**
 - **Dependency Injection**
 - **Swagger** para documentação de endpoints
-- **Migrations** para versionamento do banco de dados
-
 ---
 
 ## 📂 Estrutura do Projeto
